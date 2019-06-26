@@ -1,4 +1,7 @@
+// +build !confonly
+
 // Package blackhole is an outbound handler that blocks all connections.
+
 package blackhole
 
 //go:generate errorgen
@@ -8,9 +11,8 @@ import (
 	"time"
 
 	"v2ray.com/core/common"
-	"v2ray.com/core/common/vio"
-	"v2ray.com/core/proxy"
-	"v2ray.com/core/transport/pipe"
+	"v2ray.com/core/transport"
+	"v2ray.com/core/transport/internet"
 )
 
 // Handler is an outbound connection that silently swallow the entire payload.
@@ -30,13 +32,13 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 }
 
 // Process implements OutboundHandler.Dispatch().
-func (h *Handler) Process(ctx context.Context, link *vio.Link, dialer proxy.Dialer) error {
+func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
 	nBytes := h.response.WriteTo(link.Writer)
 	if nBytes > 0 {
 		// Sleep a little here to make sure the response is sent to client.
 		time.Sleep(time.Second)
 	}
-	pipe.CloseError(link.Writer)
+	common.Interrupt(link.Writer)
 	return nil
 }
 

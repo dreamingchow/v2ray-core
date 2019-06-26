@@ -1,3 +1,5 @@
+// +build !confonly
+
 package command
 
 //go:generate errorgen
@@ -75,16 +77,21 @@ func (s *statsServer) QueryStats(ctx context.Context, request *QueryStatsRequest
 }
 
 type service struct {
-	v *core.Instance
+	statsManager feature_stats.Manager
 }
 
 func (s *service) Register(server *grpc.Server) {
-	RegisterStatsServiceServer(server, NewStatsServer(s.v.Stats()))
+	RegisterStatsServiceServer(server, NewStatsServer(s.statsManager))
 }
 
 func init() {
 	common.Must(common.RegisterConfig((*Config)(nil), func(ctx context.Context, cfg interface{}) (interface{}, error) {
-		s := core.MustFromContext(ctx)
-		return &service{v: s}, nil
+		s := new(service)
+
+		core.RequireFeatures(ctx, func(sm feature_stats.Manager) {
+			s.statsManager = sm
+		})
+
+		return s, nil
 	}))
 }

@@ -9,8 +9,8 @@ import (
 	"v2ray.com/core/common/net"
 	"v2ray.com/core/common/session"
 	"v2ray.com/core/common/task"
-	"v2ray.com/core/common/vio"
-	"v2ray.com/core/proxy"
+	"v2ray.com/core/transport"
+	"v2ray.com/core/transport/internet"
 )
 
 type Client struct {
@@ -20,7 +20,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 	return &Client{}, nil
 }
 
-func (c *Client) Process(ctx context.Context, link *vio.Link, dialer proxy.Dialer) error {
+func (c *Client) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
 		return newError("unknown destination.")
@@ -62,8 +62,8 @@ func (c *Client) Process(ctx context.Context, link *vio.Link, dialer proxy.Diale
 		return buf.Copy(connReader, link.Writer)
 	}
 
-	var responseDoneAndCloseWriter = task.Single(response, task.OnSuccess(task.Close(link.Writer)))
-	if err := task.Run(task.WithContext(ctx), task.Parallel(request, responseDoneAndCloseWriter))(); err != nil {
+	var responseDoneAndCloseWriter = task.OnSuccess(response, task.Close(link.Writer))
+	if err := task.Run(ctx, request, responseDoneAndCloseWriter); err != nil {
 		return newError("connection ends").Base(err)
 	}
 

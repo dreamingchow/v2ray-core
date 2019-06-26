@@ -1,3 +1,5 @@
+// +build !confonly
+
 package commander
 
 import (
@@ -7,8 +9,7 @@ import (
 	"v2ray.com/core/common"
 	"v2ray.com/core/common/net"
 	"v2ray.com/core/common/signal/done"
-	"v2ray.com/core/common/vio"
-	"v2ray.com/core/transport/pipe"
+	"v2ray.com/core/transport"
 )
 
 // OutboundListener is a net.Listener for listening gRPC connections.
@@ -69,12 +70,12 @@ type Outbound struct {
 }
 
 // Dispatch implements outbound.Handler.
-func (co *Outbound) Dispatch(ctx context.Context, link *vio.Link) {
+func (co *Outbound) Dispatch(ctx context.Context, link *transport.Link) {
 	co.access.RLock()
 
 	if co.closed {
-		pipe.CloseError(link.Reader)
-		pipe.CloseError(link.Writer)
+		common.Interrupt(link.Reader)
+		common.Interrupt(link.Writer)
 		co.access.RUnlock()
 		return
 	}

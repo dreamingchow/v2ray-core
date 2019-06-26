@@ -1,3 +1,5 @@
+// +build !confonly
+
 package stats
 
 //go:generate errorgen
@@ -7,7 +9,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"v2ray.com/core"
 	"v2ray.com/core/features/stats"
 )
 
@@ -42,14 +43,11 @@ func NewManager(ctx context.Context, config *Config) (*Manager, error) {
 		counters: make(map[string]*Counter),
 	}
 
-	v := core.FromContext(ctx)
-	if v != nil {
-		if err := v.RegisterFeature((*stats.Manager)(nil), m); err != nil {
-			return nil, newError("failed to register StatManager").Base(err)
-		}
-	}
-
 	return m, nil
+}
+
+func (*Manager) Type() interface{} {
+	return stats.ManagerType()
 }
 
 func (m *Manager) RegisterCounter(name string) (stats.Counter, error) {
